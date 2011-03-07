@@ -1,0 +1,4 @@
+*.o
+config.h
+a.out
+sttest

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+cat >> configure_temp.c << EOF
+#include <stdio.h>
+int main(void) {
+  if (sizeof(void*) == 4) printf("#define ARCH_32BIT\n");
+  else printf("#define ARCH_64BIT\n");
+  return 0;
+}
+EOF
+
+gcc configure_temp.c -o configure_temp
+./configure_temp > config.h
+rm configure_temp.c configure_temp
