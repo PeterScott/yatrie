@@ -8,30 +8,48 @@
 #include <assert.h>
 #include "config.h"
 
-/*************************** Machine word data type ***************************/
+/************************** Miscellaneous utilities ***************************/
+
+#define YATRIE_ERROR(format, ...) do {          \
+    fprintf(stderr, format, __VA_ARGS__);       \
+    exit(1);                                    \
+  } while (0);
+
+/************************** Low-level data mangling ***************************/
+
+#define TAG_MASK 7
 
 #ifdef ARCH_32BIT
-typedef uint32_t Word_t;
+typedef uint32_t word_t;
 
-#define SPLIT_TAG(ptr, tag) do {                    \
-    tag = (Word_t)ptr & (Word_t)7;                  \
-    ptr = (Word_t)ptr & (Word_t)0xFFFFFFF8;         \
-  } while (0);
+#define PTR_MASK 0xFFFFFFF8
+
+#define MSB(word) (((word_t)(word) & 0xFF000000) >> 24)
 #endif
 
 #ifdef ARCH_64BIT
-typedef uint64_t Word_t;
+typedef uint64_t word_t;
 
-#define SPLIT_TAG(ptr, tag) do {                    \
-    tag = (Word_t)ptr & (Word_t)7;                  \
-    ptr = (Word_t)ptr & (Word_t)0xFFFFFFFFFFFFFFF8; \
-  } while (0);
+#define PTR_MASK 0xFFFFFFFFFFFFFFF8
+
+#define MSB(word) (((word_t)(word) & 0xFF00000000000000) >> 56)
 #endif
 
-typedef Word_t yatrie_t;
+
+
+typedef word_t* yatrie_t;
+
+#define TAG(ptr, tag) ((yatrie_t)((word_t)(ptr) | (word_t)(tag)))
+
+#define SPLIT_TAG(ptr, tag) do {                      \
+    tag = (word_t)ptr & (word_t)TAG_MASK;             \
+    ptr = (yatrie_t)((word_t)ptr & (word_t)PTR_MASK); \
+  } while (0);
 
 /********************************* Yatrie API *********************************/
 
 yatrie_t yatrie_new(void);
+yatrie_t yatrie_insert(yatrie_t yatrie, word_t key, word_t value);
+word_t *yatrie_get(yatrie_t yatrie, word_t key);
 
 #endif
