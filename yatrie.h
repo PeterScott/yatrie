@@ -51,5 +51,6 @@ typedef word_t* yatrie_t;
 yatrie_t yatrie_new(void);
 yatrie_t yatrie_insert(yatrie_t yatrie, word_t key, word_t value);
 word_t *yatrie_get(yatrie_t yatrie, word_t key);
+void yatrie_free(yatrie_t yatrie);
 
 #endif

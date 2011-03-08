@@ -88,3 +88,27 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
   YATRIE_ERROR("Unknown node type: %i\n", node_type);
   return NULL;
 }
+
+void yatrie_free(yatrie_t yatrie) {
+  /* Empty root: nothing to free. */
+  if (yatrie == NULL) return;
+
+  /* Split off the tag bits, to determine node type. */
+  int node_type; SPLIT_TAG(yatrie, node_type);
+
+  /* Single key-value pair: just free it. */
+  if (node_type == NODE_KV) {
+    free(yatrie); return;
+  }
+
+  /* 256-ary branch: recurse. */
+  if (node_type == NODE_BRANCH) {
+    int i;
+    for (i = 0; i < 256; i++)
+      yatrie_free((yatrie_t)yatrie[i]);
+    free(yatrie);
+    return;
+  }
+
+  YATRIE_ERROR("Unknown node type: %i\n", node_type);
+}

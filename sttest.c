@@ -3,6 +3,7 @@
 int main(void) {
   yatrie_t trie;
 
+  /* Insert values */
   trie = yatrie_new();
   trie = yatrie_insert(trie, 1, 11);
   trie = yatrie_insert(trie, 3, 33);
@@ -16,5 +17,7 @@ int main(void) {
   val = yatrie_get(trie, 3);                printf("3 -> %llu\n", *val);
   val = yatrie_get(trie, 7777771234567891); printf("7777771234567891 -> %llu\n", *val);
 
+  /* Clean up */
+  yatrie_free(trie);
   return 0;
 }
