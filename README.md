@@ -6,6 +6,30 @@ data structure, mapping machine words to other machine words. It aims to produce
 a search data structure that is reliably efficient in every way people care
 about, across a wide variety of workloads.
 
+Operations
+---------
+
+This is strictly a fun prototype thing, and not meant for production use. In
+support of the just-for-fun goal, there are only four operations:new, insert,
+get, and free.
+
+    yatrie_t yatrie_new(void);
+
+Creates a new, empty yatrie.
+
+    yatrie_t yatrie_insert(yatrie_t yatrie, word_t key, word_t value);
+
+Insert a key, value pair into a yatrie, and return its new value.
+
+    word_t *yatrie_get(yatrie_t yatrie, word_t key);
+
+Return a pointer to the value of the given key. You can modify this
+pointer. Returns NULL if the key was not found.
+
+    void yatrie_free(yatrie_t yatrie);
+
+Free the yatrie.
+
 Design notes
 ----------
 
