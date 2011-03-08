@@ -34,4 +34,21 @@ Design notes
 ----------
 
 The four low bits of every pointer returned by `malloc()` are all zero. We can
-take advantage of this fact to use them as a type tag.
+take advantage of this fact to use them as a type tag. This lets us define
+several types of nodes. Some nodes contain one or more key-value pairs. Some
+nodes contain one or more byte-pointer pairs. Some nodes contain an array of 256
+tagged pointers, implementing an inner node in a 256-ary trie.
+
+This way, we can get efficient performance in the common cases where some
+branches of the tree are very sparse, which is important for memory efficiency
+and reducing the number of cache line fills.
+
+Compiling
+--------
+
+Just use the usual incantation:
+
+    ./configure
+    make
+
+There is no `make install` step.
