@@ -25,6 +25,11 @@ typedef uint32_t word_t;
 #define PTR_MASK 0xFFFFFFF8
 
 #define MSB(word) (((word_t)(word) & 0xFF000000) >> 24)
+
+// High and low half-word accessors
+#define HIGH_HW(word) (((word_t)(word) & 0xFFFF0000) >> 16)
+#define LOW_HW(word)  ((word_t)(word) & 0xFFFF)
+#define PACK_WORD(high, low) (((word_t)(high) << 16) | (word_t)(low))
 #endif
 
 #ifdef ARCH_64BIT
@@ -33,6 +38,11 @@ typedef uint64_t word_t;
 #define PTR_MASK 0xFFFFFFFFFFFFFFF8
 
 #define MSB(word) (((word_t)(word) & 0xFF00000000000000) >> 56)
+
+// High and low half-word accessors
+#define HIGH_HW(word) (((word_t)(word) & 0xFFFFFFFF00000000) >> 32)
+#define LOW_HW(word)  ((word_t)(word) & 0xFFFFFFFF)
+#define PACK_WORD(high, low) (((word_t)(high) << 32) | (word_t)(low))
 #endif
 
 
