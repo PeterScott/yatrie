@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include "config.h"
+#include "params.h"
 
 /************************** Miscellaneous utilities ***************************/
 
