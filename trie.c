@@ -226,20 +226,30 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
 }
 
 void yatrie_free(yatrie_t yatrie) {
+  int i = 0;
+
   /* Empty root: nothing to free. */
   if (yatrie == NULL) return;
 
   /* Split off the tag bits, to determine node type. */
   int node_type; SPLIT_TAG(yatrie, node_type);
 
-  /* Single key-value pair: just free it. */
-  if (node_type == NODE_KV) {
+  /* Single key-value nodes: just free them. */
+  if (node_type == NODE_KV || node_type == NODE_TWOKV || node_type == NODE_NKV) {
     free(yatrie); return;
+  }
+
+  /* n D-P: recurse. */
+  if (node_type == NODE_NDP) {
+    word_t dppairs = LOW_HW(yatrie[0]);
+    for (i = 0; i < dppairs; i++)
+      yatrie_free((yatrie_t)yatrie[2*i+2]);
+    free(yatrie);
+    return;
   }
 
   /* 256-ary branch: recurse. */
   if (node_type == NODE_BRANCH) {
-    int i;
     for (i = 0; i < 256; i++)
       yatrie_free((yatrie_t)yatrie[i]);
     free(yatrie);
