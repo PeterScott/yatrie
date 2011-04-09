@@ -12,8 +12,7 @@
 #define NDP_GROWTH_FACTOR_A 2
 #define NDP_GROWTH_FACTOR_B 1
 
-/* Max K-V pairs in an nkv-node before it expands. Is upper bound, not
-   inclusive. [3, 256] */
+/* Max K-V pairs in an nkv-node before it expands. [3, 255] */
 #define NKV_MAX_SIZE 128
 /* Ditto, but for ndp-nodes. */
 #define NDP_MAX_SIZE 32
