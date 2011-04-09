@@ -33,6 +33,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* Empty root: insert key-value pair. */
   if (yatrie == NULL) {
+    printf("ins into empty\n");
     word_t *node = malloc(2 * sizeof(word_t));
     node[0] = key; node[1] = value;
     return TAG(node, NODE_KV);
@@ -43,6 +44,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* Key-value pair: go to 2-KV pairs */
   if (node_type == NODE_KV) {
+    printf("ins into kv %llx\n", (uint64_t)yatrie);
     word_t *node = malloc(4 * sizeof(word_t));
     node[0] = yatrie[0]; node[1] = yatrie[1];
     node[2] = key; node[3] = value;
@@ -52,6 +54,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* Two k-v pairs: split into n-K-V */
   if (node_type == NODE_TWOKV) {
+    printf("ins into 2kv %llu\n", (uint64_t)yatrie);
     /* First word is buffer length (high half-word) and fullness (low
        half-word). */
     word_t *node = calloc(NKV_START_BUFSIZE * 2 + 1, sizeof(word_t));
@@ -65,6 +68,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* n K-V pairs: either append or split in various confusing ways. */
   if (node_type == NODE_NKV) {
+    printf("ins into nkv %llu\n", (uint64_t)yatrie);
     /* Buffer length and number of K-V pairs currently here. */
     word_t buflen  = HIGH_HW(yatrie[0]);
     word_t kvpairs = LOW_HW(yatrie[0]);
@@ -102,6 +106,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* n D-P pairs: either append or split to 256-ary node. */
   if (node_type == NODE_NDP) {
+    printf("ins into ndp %llu\n", (uint64_t)yatrie);
     /* Buffer length and number of D-P pairs currently here. */
     word_t buflen  = HIGH_HW(yatrie[0]);
     word_t dppairs = LOW_HW(yatrie[0]);
@@ -143,19 +148,20 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* 256 digit-pointer pairs: recurse. */
   if (node_type == NODE_BRANCH) {
+    printf("ins into branch %llu\n", (uint64_t)yatrie);
     int byte = MSB(key << shamt);
     yatrie[byte] = (word_t)yatrie_insert_internal((yatrie_t)yatrie[byte], key, shamt + 8, value);
     return TAG(yatrie, NODE_BRANCH);
   }
 
-  YATRIE_ERROR("Unknown node type: %i\n", node_type);
+  YATRIE_ERROR("insert: Unknown node type: %i\n", node_type);
   return NULL;
 }
 
 /* Return a pointer to the value of the given key. You can modify this
    pointer. Returns NULL if the key was not found. */
 word_t *yatrie_get(yatrie_t yatrie, word_t key) {
-  int shamt = 0;
+  int shamt = 0; int i = 0;
 
  beginning:
 
@@ -167,18 +173,55 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
 
   /* Single key-value pair: look at key */
   if (node_type == NODE_KV) {
+    printf("get kv\n");
     if (yatrie[0] == key) return yatrie+1;
     else return NULL;
   }
 
+  /* Two K-V pairs: look at keys */
+  if (node_type == NODE_TWOKV) {
+    printf("get 2kv\n");
+    for (i = 0; i < 2; i++)
+      if (yatrie[2*i] == key) 
+        return &yatrie[2*i+1];
+    return NULL;
+  }
+
+  /* n K-V pairs: look at keys */
+  if (node_type == NODE_NKV) {
+    word_t kvpairs = LOW_HW(yatrie[0]);
+    printf("get nkv [pairs=%i]\n", (int)kvpairs);
+
+    for (i = 0; i < kvpairs; i++)
+      if (yatrie[2*i+1] == key)
+        return &yatrie[2*i+2];
+    return NULL;
+  }
+
+  /* n D-P pairs: search and recurse. */
+  if (node_type == NODE_NDP) {
+    printf("get ndp\n");
+    word_t dppairs = LOW_HW(yatrie[0]);
+    int byte = MSB(key << shamt);
+
+    for (i = 0; i < dppairs; i++) {
+      if (yatrie[2*i+1] == byte) {
+        yatrie = (yatrie_t)yatrie[2*i+2]; shamt += 8;
+        goto beginning;
+      }
+    }
+    return NULL;
+  }    
+
   /* 256-ary branch: recurse. */
   if (node_type == NODE_BRANCH) {
+    printf("get branch\n");
     int byte = MSB(key << shamt);
     yatrie = (yatrie_t)yatrie[byte]; shamt += 8;
     goto beginning;
   }
 
-  YATRIE_ERROR("Unknown node type: %i\n", node_type);
+  YATRIE_ERROR("get: Unknown node type: %i\n", node_type);
   return NULL;
 }
 
@@ -203,5 +246,5 @@ void yatrie_free(yatrie_t yatrie) {
     return;
   }
 
-  YATRIE_ERROR("Unknown node type: %i\n", node_type);
+  YATRIE_ERROR("free: Unknown node type: %i\n", node_type);
 }
