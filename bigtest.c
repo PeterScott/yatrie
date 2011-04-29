@@ -15,12 +15,17 @@ int main(int argc, char **argv) {
   for (i = 0; i < n; i++)
     trie = yatrie_insert(trie, i, i + 1000000);
   
+  /* Print the trie, for debugging */
+  yatrie_print(trie, 0);
+
   /* Get values */
   word_t *val;
   for (i = 0; i < n; i++) {
     val = yatrie_get(trie, i);
     if (val == NULL || *val != (i + 1000000)) {
       printf("Error on %i\n", i);
+      if (val == NULL) printf("val == NULL\n");
+      else printf("*val = %llu\n", *val);
       exit(1);
     }
   }

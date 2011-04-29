@@ -99,9 +99,9 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
       /* Insert each K-V pair into subtrie */
       for (i = 0; i < kvpairs; i++)
-        subtrie = yatrie_insert_internal(subtrie, yatrie[2*i+1], shamt + 8, yatrie[2*i+2]);
+        subtrie = yatrie_insert_internal(subtrie, yatrie[2*i+1], shamt, yatrie[2*i+2]);
       free(yatrie);
-      subtrie = yatrie_insert_internal(subtrie, key, shamt + 8, value);
+      subtrie = yatrie_insert_internal(subtrie, key, shamt, value);
       return subtrie;
     }
   }
@@ -148,7 +148,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
     /* Append D-P pair */
     printf("Appending D-P pair\n");
     yatrie[dppairs * 2 + 1] = digit;
-    yatrie[dppairs * 2 + 1] = (word_t)yatrie_insert_internal(NULL, key, shamt + 8, value);
+    yatrie[dppairs * 2 + 2] = (word_t)yatrie_insert_internal(NULL, key, shamt + 8, value);
     yatrie[0] = PACK_WORD(buflen, dppairs+1);
     return TAG(yatrie, NODE_NDP);
   }
@@ -180,7 +180,7 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
 
   /* Single key-value pair: look at key */
   if (node_type == NODE_KV) {
-    printf("get kv\n");
+    printf("get kv (key = %llu, should be %llu)\n", yatrie[0], key);
     if (yatrie[0] == key) return yatrie+1;
     else return NULL;
   }
@@ -260,6 +260,79 @@ void yatrie_free(yatrie_t yatrie) {
     for (i = 0; i < 256; i++)
       yatrie_free((yatrie_t)yatrie[i]);
     free(yatrie);
+    return;
+  }
+
+  YATRIE_ERROR("free: Unknown node type: %i\n", node_type);
+}
+
+void print_spaces(int spaces) {
+  while (spaces--) putchar(' ');
+}
+
+/* Print a trie with a given number of leading spaces */
+void yatrie_print(yatrie_t yatrie, int spaces) {
+  int i;
+
+  /* Empty root: nothing there. */
+  if (yatrie == NULL) {
+    print_spaces(spaces);
+    printf("@\n");
+    return;
+  }
+
+  /* Split off the tag bits, to determine node type. */
+  int node_type; SPLIT_TAG(yatrie, node_type);
+
+  /* Single key-value pair */
+  if (node_type == NODE_KV) {
+    print_spaces(spaces);
+    printf("%llu -> %llu\n", yatrie[0], yatrie[1]);
+    return;
+  }
+
+  /* Two K-V pairs */
+  if (node_type == NODE_TWOKV) {    
+    for (i = 0; i < 2; i++) {
+      print_spaces(spaces);
+      printf("%llu -> %llu\n", yatrie[2*i], yatrie[2*i + 1]);
+    }
+    return;
+  }
+
+  /* n K-V pairs */
+  if (node_type == NODE_NKV) {
+    print_spaces(spaces); printf("NKV\n");
+    word_t kvpairs = LOW_HW(yatrie[0]);
+
+    for (i = 0; i < kvpairs; i++) {
+      print_spaces(spaces);
+      printf("%llu -> %llu\n", yatrie[2*i+1], yatrie[2*i+2]);
+    }
+    return;
+  }
+
+  /* n D-P: recurse. */
+  if (node_type == NODE_NDP) {
+    print_spaces(spaces); printf("NDP\n");
+    word_t dppairs = LOW_HW(yatrie[0]);
+    for (i = 0; i < dppairs; i++) {
+      print_spaces(spaces);
+      printf("%llu:\n", yatrie[2*i+1]); /* FIXME */
+      yatrie_print((yatrie_t)yatrie[2*i+2], spaces + 2);
+    }
+    return;
+  }
+
+  /* 256-ary branch: recurse. */
+  if (node_type == NODE_BRANCH) {
+    print_spaces(spaces); printf("Branch\n");
+    for (i = 0; i < 256; i++)
+      if (yatrie[i] != 0) {
+        print_spaces(spaces);
+        printf("%i:\n", i);     /* FIXME */
+        yatrie_print((yatrie_t)yatrie[i], spaces + 2);
+      }
     return;
   }
 
