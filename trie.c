@@ -44,7 +44,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* Key-value pair: go to 2-KV pairs */
   if (node_type == NODE_KV) {
-    printf("ins into kv %llx\n", (uint64_t)yatrie);
+    //printf("ins into kv %llx\n", (uint64_t)yatrie);
     word_t *node = malloc(4 * sizeof(word_t));
     node[0] = yatrie[0]; node[1] = yatrie[1];
     node[2] = key; node[3] = value;
@@ -54,7 +54,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* Two k-v pairs: split into n-K-V */
   if (node_type == NODE_TWOKV) {
-    printf("ins into 2kv %llu\n", (uint64_t)yatrie);
+    //printf("ins into 2kv %llu\n", (uint64_t)yatrie);
     /* First word is buffer length (high half-word) and fullness (low
        half-word). */
     word_t *node = calloc(NKV_START_BUFSIZE * 2 + 1, sizeof(word_t));
@@ -68,7 +68,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* n K-V pairs: either append or split in various confusing ways. */
   if (node_type == NODE_NKV) {
-    printf("ins into nkv %llu\n", (uint64_t)yatrie);
+    //printf("ins into nkv %llu\n", (uint64_t)yatrie);
     /* Buffer length and number of K-V pairs currently here. */
     word_t buflen  = HIGH_HW(yatrie[0]);
     word_t kvpairs = LOW_HW(yatrie[0]);
@@ -76,7 +76,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
     if ((kvpairs+1) < NKV_MAX_SIZE) {
       /* Do we need to resize? */
       if ((kvpairs+1) >= buflen) {
-        printf("Resizing nkv\n");
+        //printf("Resizing nkv\n");
         word_t new_buflen = (buflen * NKV_GROWTH_FACTOR_A) / NKV_GROWTH_FACTOR_B;
         word_t *node = calloc(new_buflen * 2 + 1, sizeof(word_t));
         memcpy(node, yatrie, (buflen * 2 + 1) * sizeof(word_t));
@@ -90,7 +90,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
       yatrie[0] = PACK_WORD(buflen, kvpairs);
       return TAG(yatrie, NODE_NKV);
     } else {
-      printf("Creating n-DP node and inserting pairs\n");
+      //printf("Creating n-DP node and inserting pairs\n");
       /* Cheap hack: create an n-DP node, and insert each K-V pair
          into it with this function recursively. */
       word_t *node = calloc(NDP_START_BUFSIZE * 2 + 1, sizeof(word_t));
@@ -108,7 +108,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* n D-P pairs: either append or split to 256-ary node. */
   if (node_type == NODE_NDP) {
-    printf("ins into ndp %llu\n", (uint64_t)yatrie);
+    //printf("ins into ndp %llu\n", (uint64_t)yatrie);
     /* Buffer length and number of D-P pairs currently here. */
     word_t buflen  = HIGH_HW(yatrie[0]);
     word_t dppairs = LOW_HW(yatrie[0]);
@@ -117,7 +117,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
     word_t digit = MSB(key << shamt);
     for (i = 0; i < dppairs; i++) {
       if (digit == yatrie[2*i+1]) {
-        printf("Inserting into existing D-P pair\n");
+        //printf("Inserting into existing D-P pair\n");
         yatrie[2*i+2] = (word_t)yatrie_insert_internal((yatrie_t)yatrie[2*i+2], key, shamt + 8, value);
         return TAG(yatrie, NODE_NDP);
       }
@@ -125,7 +125,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
     /* If we're to the 256-ary threshold, convert. */
     if ((dppairs+1) >= NDP_MAX_SIZE) {
-      printf("Converting to 256-ary branch\n");
+      //printf("Converting to 256-ary branch\n");
       word_t *node = calloc(256, sizeof(word_t));
       /* Array of pointers */
       for (i = 0; i < dppairs; i++) node[MSB(yatrie[2*i+1] << shamt)] = yatrie[2*i+2];
@@ -137,7 +137,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
     /* Reallocate if necessary */
     if ((dppairs+1) >= buflen) {
-      printf("Reallocating ndp\n");
+      //printf("Reallocating ndp\n");
       word_t new_buflen = (buflen * NDP_GROWTH_FACTOR_A) / NDP_GROWTH_FACTOR_B;
       word_t *node = calloc(new_buflen * 2 + 1, sizeof(word_t));
       memcpy(node, yatrie, (buflen * 2 + 1) * sizeof(word_t));
@@ -146,7 +146,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
     }
 
     /* Append D-P pair */
-    printf("Appending D-P pair\n");
+    //printf("Appending D-P pair\n");
     yatrie[dppairs * 2 + 1] = digit;
     yatrie[dppairs * 2 + 2] = (word_t)yatrie_insert_internal(NULL, key, shamt + 8, value);
     yatrie[0] = PACK_WORD(buflen, dppairs+1);
@@ -155,7 +155,7 @@ yatrie_t yatrie_insert_internal(yatrie_t yatrie, word_t key, int shamt, word_t v
 
   /* 256 digit-pointer pairs: recurse. */
   if (node_type == NODE_BRANCH) {
-    printf("ins into branch %llu\n", (uint64_t)yatrie);
+    //printf("ins into branch %llu\n", (uint64_t)yatrie);
     int byte = MSB(key << shamt);
     yatrie[byte] = (word_t)yatrie_insert_internal((yatrie_t)yatrie[byte], key, shamt + 8, value);
     return TAG(yatrie, NODE_BRANCH);
@@ -180,14 +180,14 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
 
   /* Single key-value pair: look at key */
   if (node_type == NODE_KV) {
-    printf("get kv (key = %llu, should be %llu)\n", yatrie[0], key);
+    //printf("get kv (key = %llu, should be %llu)\n", yatrie[0], key);
     if (yatrie[0] == key) return yatrie+1;
     else return NULL;
   }
 
   /* Two K-V pairs: look at keys */
   if (node_type == NODE_TWOKV) {
-    printf("get 2kv\n");
+    //printf("get 2kv\n");
     for (i = 0; i < 2; i++)
       if (yatrie[2*i] == key) 
         return &yatrie[2*i+1];
@@ -197,7 +197,7 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
   /* n K-V pairs: look at keys */
   if (node_type == NODE_NKV) {
     word_t kvpairs = LOW_HW(yatrie[0]);
-    printf("get nkv [pairs=%i]\n", (int)kvpairs);
+    //printf("get nkv [pairs=%i]\n", (int)kvpairs);
 
     for (i = 0; i < kvpairs; i++)
       if (yatrie[2*i+1] == key)
@@ -207,7 +207,7 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
 
   /* n D-P pairs: search and recurse. */
   if (node_type == NODE_NDP) {
-    printf("get ndp\n");
+    //printf("get ndp\n");
     word_t dppairs = LOW_HW(yatrie[0]);
     int byte = MSB(key << shamt);
 
@@ -222,7 +222,7 @@ word_t *yatrie_get(yatrie_t yatrie, word_t key) {
 
   /* 256-ary branch: recurse. */
   if (node_type == NODE_BRANCH) {
-    printf("get branch\n");
+    //printf("get branch\n");
     int byte = MSB(key << shamt);
     yatrie = (yatrie_t)yatrie[byte]; shamt += 8;
     goto beginning;
